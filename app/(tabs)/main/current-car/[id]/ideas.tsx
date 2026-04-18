@@ -1,13 +1,18 @@
 import { StyleSheet, View } from 'react-native';
+import { Button } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-export default function HomeScreen() {
+export default function CurrentCarIdeasScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <ThemedText type="title">my results here</ThemedText>
+        <ThemedText type="title">Ideas</ThemedText>
+        <ThemedText style={styles.subtitle}>Upgrades, mods, and ideas for this car.</ThemedText>
+        <Button mode="contained" onPress={() => {}}>
+          Add
+        </Button>
       </View>
     </ThemedView>
   );
@@ -22,5 +27,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+    gap: 16,
+  },
+  subtitle: {
+    opacity: 0.7,
+    textAlign: 'center',
   },
 });
