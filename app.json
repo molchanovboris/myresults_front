@@ -28,6 +28,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Приложению нужен доступ к фото, чтобы прикрепить счёт из галереи.",
+          "cameraPermission": "Приложению нужен доступ к камере, чтобы сфотографировать счёт."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

@@ -29,6 +29,8 @@ export default function CurrentCarLayout() {
       />
       <Stack.Screen name="info" options={{ title: 'Info' }} />
       <Stack.Screen name="service" options={{ title: 'Service' }} />
+      <Stack.Screen name="add-service" options={{ title: 'Новая запись' }} />
+      <Stack.Screen name="service-record/[serviceId]" options={{ title: 'Запись сервиса' }} />
       <Stack.Screen name="ideas" options={{ title: 'Ideas' }} />
     </Stack>
   );

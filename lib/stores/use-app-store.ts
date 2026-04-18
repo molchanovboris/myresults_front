@@ -1,18 +1,14 @@
 import { create } from 'zustand';
 
-export interface Car {
-  id: string;
-  vin: string;
-  manufacturer: string;
-  model: string;
-  year: number;
-}
+import type { Car, ServiceRecord } from '@/lib/types';
 
 interface AppState {
   token: string | null;
   cars: Car[];
+  serviceRecords: ServiceRecord[];
   setToken: (token: string | null) => void;
   addCar: (car: Omit<Car, 'id'>) => string;
+  addServiceRecord: (record: Omit<ServiceRecord, 'id'>) => void;
   reset: () => void;
 }
 
@@ -23,6 +19,7 @@ const initialState = {
     { id: '2', vin: 'WBA5R1C58LFH12865', manufacturer: 'BMW', model: '330i', year: 2021 },
     { id: '3', vin: '5YJ3E1EA5MF818253', manufacturer: 'Tesla', model: 'Model 3', year: 2022 },
   ] as Car[],
+  serviceRecords: [] as ServiceRecord[],
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -32,6 +29,10 @@ export const useAppStore = create<AppState>((set) => ({
     const id = Date.now().toString();
     set((state) => ({ cars: [...state.cars, { id, ...car }] }));
     return id;
+  },
+  addServiceRecord: (record) => {
+    const id = Date.now().toString();
+    set((state) => ({ serviceRecords: [...state.serviceRecords, { id, ...record }] }));
   },
   reset: () => set(initialState),
 }));
