@@ -1,26 +1,69 @@
 /**
- * Базовый API-клиент для запросов к бэкенду.
- * Замените BASE_URL на адрес вашего API.
+ * Базовый API-клиент.
+ * Адрес бэка задаётся в .env как EXPO_PUBLIC_API_URL.
+ * Если переменной нет, используется локальный сервер.
  */
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.example.com';
+import { queryClient } from '@/lib/query-client';
+import { useAppStore } from '@/lib/stores/use-app-store';
 
-export async function apiFetch<T>(
-  path: string,
-  options?: RequestInit
-): Promise<T> {
+const BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+
+export function apiAssetUrl(path: string) {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const url = path.startsWith('http') ? path : `${BASE_URL}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  const headers = new Headers(options?.headers);
+  const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
 
-  if (!res.ok) {
-    throw new Error(`API Error: ${res.status} ${res.statusText}`);
+  if (options?.body && !isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
-  return res.json() as Promise<T>;
+  const token = useAppStore.getState().token;
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const res = await fetch(url, { ...options, headers });
+  const data = await readBody(res);
+
+  if (!res.ok) {
+    if (res.status === 401 && token) {
+      useAppStore.getState().setToken(null);
+      queryClient.removeQueries({ queryKey: ['auth', 'me'] });
+    }
+
+    const message =
+      data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
+        ? data.error
+        : `API Error: ${res.status}`;
+    throw new ApiError(res.status, message);
+  }
+
+  return data as T;
+}
+
+async function readBody(res: Response): Promise<unknown> {
+  const text = await res.text();
+  if (!text) return undefined;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
 }

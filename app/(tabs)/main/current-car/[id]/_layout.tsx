@@ -2,13 +2,15 @@ import { HeaderBackButton } from '@react-navigation/elements';
 import { useTheme } from '@react-navigation/native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 
-import { useAppStore } from '@/lib/stores/use-app-store';
+import { useCar } from '@/lib/hooks/use-car';
 
 export default function CurrentCarLayout() {
   const theme = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const car = useAppStore((state) => state.cars.find((item) => item.id === id));
-  const carTitle = car ? `${car.manufacturer} ${car.model}` : 'Car';
+  const params = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { data } = useCar(id);
+  const car = data?.car;
+  const carTitle = car ? `${car.make} ${car.model}` : 'Car';
 
   return (
     <Stack>
@@ -27,7 +29,6 @@ export default function CurrentCarLayout() {
           ),
         }}
       />
-      <Stack.Screen name="info" options={{ title: 'Info' }} />
       <Stack.Screen name="service" options={{ title: 'Service' }} />
       <Stack.Screen name="add-service" options={{ title: 'Новая запись' }} />
       <Stack.Screen name="service-record/[serviceId]" options={{ title: 'Запись сервиса' }} />

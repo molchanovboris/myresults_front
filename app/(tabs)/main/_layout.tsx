@@ -25,7 +25,7 @@ export default function MainStackLayout() {
       <Stack.Screen
         name="new-car"
         options={{
-          title: 'New car',
+          headerShown: false,
         }}
       />
       <Stack.Screen

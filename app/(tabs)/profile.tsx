@@ -3,21 +3,32 @@ import { Button } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useMe } from '@/lib/hooks/use-me';
+import { queryClient } from '@/lib/query-client';
 import { useAppStore } from '@/lib/stores/use-app-store';
 
 export default function ProfileScreen() {
-  const token = useAppStore((state) => state.token);
   const reset = useAppStore((state) => state.reset);
+  const { data, isPending, isError, error } = useMe();
+
+  const onLogout = () => {
+    queryClient.removeQueries({ queryKey: ['auth', 'me'] });
+    reset();
+  };
 
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
         <ThemedText type="title">Profile</ThemedText>
-        <ThemedText style={styles.subtitle}>You are authenticated.</ThemedText>
-        <ThemedText style={styles.tokenText} numberOfLines={1}>
-          Token: {token ?? 'none'}
-        </ThemedText>
-        <Button mode="outlined" onPress={reset}>
+        {isPending ? <ThemedText style={styles.subtitle}>Loading profile…</ThemedText> : null}
+        {data?.user ? (
+          <>
+            <ThemedText style={styles.subtitle}>{data.user.email}</ThemedText>
+            {data.user.name ? <ThemedText style={styles.subtitle}>{data.user.name}</ThemedText> : null}
+          </>
+        ) : null}
+        {isError ? <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load profile'}</ThemedText> : null}
+        <Button mode="outlined" onPress={onLogout}>
           Logout
         </Button>
       </View>
@@ -39,7 +50,7 @@ const styles = StyleSheet.create({
   subtitle: {
     opacity: 0.7,
   },
-  tokenText: {
-    opacity: 0.8,
+  errorText: {
+    color: '#d32f2f',
   },
 });
