@@ -1,12 +1,19 @@
+import { useTheme } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { Link, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Link, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, TextInput } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { apiAssetUrl } from '@/lib/api';
+import { updateCar } from '@/lib/cars';
 import { useCar } from '@/lib/hooks/use-car';
+import { queryClient } from '@/lib/query-client';
+import { useAppStore } from '@/lib/stores/use-app-store';
+import type { CarDetailsResponse } from '@/lib/types';
 
 function Field({ label, value }: { label: string; value: string | number | null }) {
   return (
@@ -18,15 +25,75 @@ function Field({ label, value }: { label: string; value: string | number | null 
 }
 
 export default function CurrentCarHubScreen() {
+  const theme = useTheme();
+  const navigation = useNavigation();
   const params = useLocalSearchParams<{ id: string }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { data, isPending, isError, error } = useCar(id);
   const car = data?.car;
   const photoUrl = data?.photos[0]?.url;
+  const [editing, setEditing] = useState(false);
+  const [color, setColor] = useState('');
+  const [mileage, setMileage] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const saveCar = useMutation({
+    mutationFn: () =>
+      updateCar(id!, {
+        color: color.trim() ? color.trim() : null,
+        mileage: Number(mileage),
+      }),
+    onSuccess: (updated) => {
+      const token = useAppStore.getState().token;
+      queryClient.setQueryData<CarDetailsResponse>(['cars', token, id], (current) =>
+        current ? { ...current, car: updated.car } : { car: updated.car, photos: [] }
+      );
+      queryClient.invalidateQueries({ queryKey: ['cars', token], exact: true });
+      setEditing(false);
+      setFormError(null);
+    },
+  });
+
+  const actions = useRef({ startEdit: () => {}, save: () => {} });
+  actions.current.startEdit = () => {
+    if (!car) return;
+    setColor(car.color ?? '');
+    setMileage(car.mileage != null ? String(car.mileage) : '');
+    setFormError(null);
+    saveCar.reset();
+    setEditing(true);
+  };
+  actions.current.save = () => {
+    if (!/^\d+$/.test(mileage.trim())) {
+      setFormError('Mileage must be a whole number');
+      return;
+    }
+    if (car?.mileage != null && Number(mileage) < car.mileage) {
+      setFormError(`Mileage cannot be less than ${car.mileage}`);
+      return;
+    }
+    setFormError(null);
+    saveCar.mutate();
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => (editing ? actions.current.save() : actions.current.startEdit())}
+          disabled={saveCar.isPending || !car}
+          style={styles.headerButton}>
+          <Text style={{ color: theme.colors.primary, fontSize: 17 }}>
+            {saveCar.isPending ? 'Saving…' : editing ? 'Save' : 'Edit'}
+          </Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation, editing, car, saveCar.isPending, theme.colors.primary]);
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {isPending ? <ThemedText style={styles.muted}>Loading car…</ThemedText> : null}
         {isError ? (
           <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load car'}</ThemedText>
@@ -36,8 +103,32 @@ export default function CurrentCarHubScreen() {
             <Field label="Make" value={car.make} />
             <Field label="Model" value={car.model} />
             <Field label="Year" value={car.year} />
-            <Field label="Color" value={car.color} />
-            <Field label="Mileage" value={car.mileage} />
+            {editing ? (
+              <TextInput
+                label="Color"
+                value={color}
+                onChangeText={setColor}
+                autoCapitalize="words"
+                mode="outlined"
+                style={styles.input}
+              />
+            ) : (
+              <Field label="Color" value={car.color} />
+            )}
+            {editing ? (
+              <TextInput
+                label="Mileage"
+                value={mileage}
+                onChangeText={setMileage}
+                keyboardType="number-pad"
+                mode="outlined"
+                style={styles.input}
+              />
+            ) : (
+              <Field label="Mileage" value={car.mileage} />
+            )}
+            {formError ? <ThemedText style={styles.errorText}>{formError}</ThemedText> : null}
+            {saveCar.error ? <ThemedText style={styles.errorText}>{saveCar.error.message}</ThemedText> : null}
             {photoUrl ? (
               <Image source={{ uri: apiAssetUrl(photoUrl) }} style={styles.photo} contentFit="cover" />
             ) : (
@@ -76,6 +167,9 @@ const styles = StyleSheet.create({
   label: {
     opacity: 0.6,
   },
+  input: {
+    width: '100%',
+  },
   photo: {
     width: '100%',
     height: 220,
@@ -94,5 +188,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#d32f2f',
+  },
+  headerButton: {
+    marginRight: 16,
   },
 });

@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/api';
-import type { CarDetailsResponse, CarListResponse, CreateCarInput } from '@/lib/types';
+import type { ApiCar, CarDetailsResponse, CarListResponse, CreateCarInput, UpdateCarInput } from '@/lib/types';
 
 export function fetchCars() {
   return apiFetch<CarListResponse>('/cars');
@@ -14,4 +14,15 @@ export function createCar(input: CreateCarInput) {
     method: 'POST',
     body: JSON.stringify(input),
   });
+}
+
+export function updateCar(id: string, input: UpdateCarInput) {
+  return apiFetch<{ car: ApiCar }>(`/cars/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteCar(id: string) {
+  return apiFetch<void>(`/cars/${id}`, { method: 'DELETE' });
 }

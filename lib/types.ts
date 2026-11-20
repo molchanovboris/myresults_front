@@ -58,6 +58,11 @@ export interface CreateCarInput {
   mileage: number;
 }
 
+export interface UpdateCarInput {
+  color?: string | null;
+  mileage?: number;
+}
+
 export interface ServiceRecord {
   id: string;
   carId: string;
