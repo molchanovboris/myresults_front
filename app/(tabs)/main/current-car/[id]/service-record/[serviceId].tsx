@@ -1,11 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Chip } from 'react-native-paper';
+import { Chip } from 'react-native-paper';
 
 import { AttachInvoiceSheet } from '@/components/attach-invoice-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { ScreenTitle } from '@/components/ui/screen-title';
 import type { InvoiceAttachment } from '@/lib/types';
 import { useService } from '@/lib/hooks/use-services';
 
@@ -22,7 +24,7 @@ export default function ServiceRecordScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <ThemedText type="title">Запись сервиса</ThemedText>
+        <ScreenTitle>Запись сервиса</ScreenTitle>
         {isPending ? <ThemedText style={styles.description}>Loading service…</ThemedText> : null}
         {isError ? <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load service'}</ThemedText> : null}
         {record ? (
@@ -45,9 +47,7 @@ export default function ServiceRecordScreen() {
                 </ThemedText>
               </View>
             ))}
-            <Button mode="contained" onPress={() => setAttachSheetVisible(true)}>
-              Добавить счёт
-            </Button>
+            <AppButton onPress={() => setAttachSheetVisible(true)}>Добавить счёт</AppButton>
             {invoice ? (
               <View style={styles.attachmentRow}>
                 <ThemedText style={styles.attachmentLabel}>Прикреплённый счёт:</ThemedText>

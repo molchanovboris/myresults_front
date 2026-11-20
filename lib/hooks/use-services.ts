@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchService, fetchServices } from '@/lib/services';
+import { fetchService, fetchServices } from '@/features/service-records';
 import { useAppStore } from '@/lib/stores/use-app-store';
 
 export function useServices(carId: string | undefined) {

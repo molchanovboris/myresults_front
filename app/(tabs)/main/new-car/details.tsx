@@ -1,10 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
-import { Button, TextInput } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { AppTextField } from '@/components/ui/app-text-field';
+import { ScreenTitle } from '@/components/ui/screen-title';
 import { useCreateCar } from '@/lib/hooks/use-create-car';
 import { queryClient } from '@/lib/query-client';
 import { useAppStore } from '@/lib/stores/use-app-store';
@@ -71,7 +73,7 @@ export default function NewCarDetailsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ThemedText type="title">Car details</ThemedText>
+        <ScreenTitle>Car details</ScreenTitle>
         {vin ? <ThemedText style={styles.subtitle}>VIN {vin}</ThemedText> : null}
 
         <Controller
@@ -79,14 +81,12 @@ export default function NewCarDetailsScreen() {
           name="make"
           rules={{ required: 'Make is required' }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="Make"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               autoCapitalize="words"
-              mode="outlined"
-              style={styles.input}
               error={!!errors.make}
             />
           )}
@@ -98,14 +98,12 @@ export default function NewCarDetailsScreen() {
           name="model"
           rules={{ required: 'Model is required' }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="Model"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               autoCapitalize="words"
-              mode="outlined"
-              style={styles.input}
               error={!!errors.model}
             />
           )}
@@ -126,14 +124,12 @@ export default function NewCarDetailsScreen() {
             },
           }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="Year"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               keyboardType="number-pad"
-              mode="outlined"
-              style={styles.input}
               error={!!errors.year}
             />
           )}
@@ -148,14 +144,12 @@ export default function NewCarDetailsScreen() {
             validate: (value) => /^\d+$/.test(value.trim()) || 'Mileage must be a whole number',
           }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="Mileage"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               keyboardType="number-pad"
-              mode="outlined"
-              style={styles.input}
               error={!!errors.mileage}
             />
           )}
@@ -166,27 +160,24 @@ export default function NewCarDetailsScreen() {
           control={control}
           name="color"
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="Color"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               autoCapitalize="words"
-              mode="outlined"
-              style={styles.input}
             />
           )}
         />
 
         {createCar.error ? <ThemedText style={styles.errorText}>{createCar.error.message}</ThemedText> : null}
 
-        <Button
-          mode="contained"
+        <AppButton
           onPress={handleSubmit(onCreate)}
           loading={createCar.isPending}
           disabled={createCar.isPending}>
           Create car
-        </Button>
+        </AppButton>
       </ScrollView>
     </ThemedView>
   );
@@ -202,9 +193,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     opacity: 0.7,
-  },
-  input: {
-    width: '100%',
   },
   errorText: {
     color: '#d32f2f',

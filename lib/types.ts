@@ -1,11 +1,3 @@
-export interface Car {
-  id: string;
-  vin: string;
-  manufacturer: string;
-  model: string;
-  year: number;
-}
-
 /** Машина в ответе бэка. Даты приходят строками ISO. */
 export interface ApiCar {
   id: string;
@@ -55,12 +47,17 @@ export interface CreateCarInput {
   vin?: string;
   year?: number;
   color?: string;
+  nickname?: string;
   mileage: number;
 }
 
 export interface UpdateCarInput {
   color?: string | null;
   mileage?: number;
+}
+
+export interface CarResponse {
+  car: ApiCar;
 }
 
 export type ServiceKind = 'maintenance' | 'repair';
@@ -91,6 +88,8 @@ export interface ApiService {
   recommendedMileage: number | null;
   laborCost: number | null;
   cost: number | null;
+  workshop: string | null;
+  category: string | null;
   notes: string | null;
   performedAt: string | null;
   createdAt: string;
@@ -115,19 +114,16 @@ export interface ServiceListResponse {
   latestMileage: number | null;
 }
 
+export interface ServiceDetailsResponse {
+  service: ApiService;
+}
+
 export interface CreateServiceInput {
   kind: ServiceKind;
   mileage: number;
   laborCost: number;
   repair?: string;
   items: ServiceItemInput[];
-}
-
-export interface ServiceRecord {
-  id: string;
-  carId: string;
-  mileage: number;
-  description: string;
 }
 
 export interface InvoiceAttachment {

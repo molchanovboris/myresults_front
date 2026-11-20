@@ -3,13 +3,12 @@ export { apiFetch } from './api';
 export type {
   ApiCar,
   ApiCarPhoto,
-  Car,
   CarDetailsResponse,
   CarListResponse,
+  CarResponse,
   CreateCarInput,
   UpdateCarInput,
   InvoiceAttachment,
-  ServiceRecord,
   VinDecode,
 } from './types';
 export { useAppStore } from './stores/use-app-store';

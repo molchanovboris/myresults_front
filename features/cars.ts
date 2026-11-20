@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/api';
-import type { ApiCar, CarDetailsResponse, CarListResponse, CreateCarInput, UpdateCarInput } from '@/lib/types';
+import type { CarDetailsResponse, CarListResponse, CarResponse, CreateCarInput, UpdateCarInput } from '@/lib/types';
 
 export function fetchCars() {
   return apiFetch<CarListResponse>('/cars');
@@ -17,7 +17,7 @@ export function createCar(input: CreateCarInput) {
 }
 
 export function updateCar(id: string, input: UpdateCarInput) {
-  return apiFetch<{ car: ApiCar }>(`/cars/${id}`, {
+  return apiFetch<CarResponse>(`/cars/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });

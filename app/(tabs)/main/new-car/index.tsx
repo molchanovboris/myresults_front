@@ -2,10 +2,13 @@ import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
-import { Button, TextInput } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { AppTextField } from '@/components/ui/app-text-field';
+import { ScreenTitle } from '@/components/ui/screen-title';
 import { decodeVin } from '@/lib/catalog';
 
 type VinFormValues = {
@@ -51,30 +54,28 @@ export default function FindCarByVinScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <ThemedText type="title">Find by VIN</ThemedText>
+        <ScreenTitle>Find by VIN</ScreenTitle>
         <Controller
           control={control}
           name="vin"
           rules={vinRules}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="VIN"
               value={value}
               onChangeText={(next) => onChange(next.toUpperCase())}
               onBlur={onBlur}
               autoCapitalize="characters"
               autoCorrect={false}
-              mode="outlined"
-              style={styles.input}
               error={!!errors.vin}
             />
           )}
         />
         {errors.vin ? <ThemedText style={styles.errorText}>{errors.vin.message}</ThemedText> : null}
         {decode.error ? <ThemedText style={styles.errorText}>{decode.error.message}</ThemedText> : null}
-        <Button mode="contained" onPress={handleSubmit(onNext)} loading={decode.isPending} disabled={decode.isPending}>
+        <AppButton onPress={handleSubmit(onNext)} loading={decode.isPending} disabled={decode.isPending}>
           Next
-        </Button>
+        </AppButton>
         <Button mode="text" onPress={() => router.push('/(tabs)/main/new-car/details')} disabled={decode.isPending}>
           Enter manually
         </Button>
@@ -91,9 +92,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     gap: 12,
-  },
-  input: {
-    width: '100%',
   },
   errorText: {
     color: '#d32f2f',
