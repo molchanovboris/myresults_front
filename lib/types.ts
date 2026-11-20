@@ -63,6 +63,66 @@ export interface UpdateCarInput {
   mileage?: number;
 }
 
+export type ServiceKind = 'maintenance' | 'repair';
+
+export interface ApiServiceItem {
+  id: string;
+  serviceId: string;
+  name: string;
+  quantity: number;
+  price: number;
+  position: number;
+  createdAt: string;
+}
+
+export interface ServiceItemInput {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface ApiService {
+  id: string;
+  carId: string;
+  status: 'planned' | 'completed';
+  kind: ServiceKind | null;
+  title: string;
+  mileage: number | null;
+  recommendedMileage: number | null;
+  laborCost: number | null;
+  cost: number | null;
+  notes: string | null;
+  performedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items?: ApiServiceItem[];
+}
+
+export interface ApiServiceSummary {
+  id: string;
+  status: 'planned' | 'completed';
+  kind: ServiceKind | null;
+  title: string;
+  recommendedMileage: number | null;
+  cost: number | null;
+  mileage: number | null;
+  performedAt: string | null;
+}
+
+export interface ServiceListResponse {
+  services: ApiServiceSummary[];
+  totalCost: number;
+  latestMileage: number | null;
+}
+
+export interface CreateServiceInput {
+  kind: ServiceKind;
+  mileage: number;
+  laborCost: number;
+  repair?: string;
+  items: ServiceItemInput[];
+}
+
 export interface ServiceRecord {
   id: string;
   carId: string;

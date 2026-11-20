@@ -1,67 +1,127 @@
+import { useMutation } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
-import { Controller, useForm } from 'react-hook-form';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { Button, SegmentedButtons, TextInput } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { queryClient } from '@/lib/query-client';
+import { createService } from '@/lib/services';
 import { useAppStore } from '@/lib/stores/use-app-store';
+import type { ServiceKind } from '@/lib/types';
+
+type ServiceItemForm = {
+  name: string;
+  price: string;
+  quantity: string;
+};
 
 type AddServiceFormValues = {
   mileage: string;
-  description: string;
+  laborCost: string;
+  repair: string;
+  items: ServiceItemForm[];
 };
 
-export default function AddServiceScreen() {
-  const { id: carId } = useLocalSearchParams<{ id: string }>();
-  const addServiceRecord = useAppStore((state) => state.addServiceRecord);
+const emptyItem = (): ServiceItemForm => ({ name: '', price: '', quantity: '1' });
 
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, '').slice(0, 2);
+}
+
+function moneyText(value: string) {
+  const cleaned = value.replace(/[^\d.]/g, '');
+  const [whole, ...fraction] = cleaned.split('.');
+  if (fraction.length === 0) return whole;
+  return `${whole}.${fraction.join('').slice(0, 2)}`;
+}
+
+function serviceTitle(kind: ServiceKind, mileage: string, repair: string) {
+  const mileageNumber = Number(mileage);
+  if (!Number.isInteger(mileageNumber) || mileageNumber < 0) return null;
+  const formatted = new Intl.NumberFormat('en-US').format(mileageNumber);
+  if (kind === 'maintenance') return `Service at ${formatted} km`;
+  return repair.trim() ? `Repair ${repair.trim()}` : null;
+}
+
+export default function AddServiceScreen() {
+  const params = useLocalSearchParams<{ id: string }>();
+  const carId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const [kind, setKind] = useState<ServiceKind>('maintenance');
   const {
     control,
     handleSubmit,
-    formState: { errors, isValid },
+    watch,
+    formState: { errors },
   } = useForm<AddServiceFormValues>({
     mode: 'onChange',
     defaultValues: {
       mileage: '',
-      description: '',
+      laborCost: '',
+      repair: '',
+      items: [emptyItem()],
+    },
+  });
+  const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  const mileage = watch('mileage');
+  const repair = watch('repair');
+  const preview = serviceTitle(kind, mileage, repair);
+
+  const saveService = useMutation({
+    mutationFn: (values: AddServiceFormValues) =>
+      createService(carId!, {
+        kind,
+        mileage: Number(values.mileage),
+        laborCost: Number(values.laborCost),
+        ...(kind === 'repair' ? { repair: values.repair.trim() } : {}),
+        items: values.items.map((item) => ({
+          name: item.name.trim(),
+          quantity: Number(item.quantity),
+          price: Number(item.price),
+        })),
+      }),
+    onSuccess: () => {
+      const token = useAppStore.getState().token;
+      queryClient.invalidateQueries({ queryKey: ['services', token, carId] });
+      router.back();
     },
   });
 
-  const onSchedule = ({ mileage, description }: AddServiceFormValues) => {
-    if (!carId) {
-      return;
-    }
-    addServiceRecord({
-      carId,
-      mileage: Number(mileage),
-      description: description.trim(),
-    });
-    router.back();
+  const onSave = (values: AddServiceFormValues) => {
+    if (!carId) return;
+    saveService.mutate(values);
   };
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <SegmentedButtons
+          value={kind}
+          onValueChange={(value) => setKind(value as ServiceKind)}
+          buttons={[
+            { value: 'maintenance', label: 'Service' },
+            { value: 'repair', label: 'Repair' },
+          ]}
+        />
+
         <Controller
           control={control}
           name="mileage"
           rules={{
-            required: 'Укажите пробег',
+            required: 'Mileage is required',
             validate: (value) => {
-              const n = Number(value);
-              if (!Number.isFinite(n) || n < 0) {
-                return 'Пробег должен быть неотрицательным числом';
-              }
-              if (!Number.isInteger(n)) {
-                return 'Пробег укажите целым числом';
+              const mileageNumber = Number(value);
+              if (!Number.isInteger(mileageNumber) || mileageNumber < 0) {
+                return 'Mileage must be a whole number from 0';
               }
               return true;
             },
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
-              label="Пробег"
+              label="Mileage"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
@@ -76,33 +136,153 @@ export default function AddServiceScreen() {
 
         <Controller
           control={control}
-          name="description"
+          name="laborCost"
           rules={{
-            required: 'Опишите работы',
-            minLength: { value: 3, message: 'Минимум 3 символа' },
+            required: 'Labor cost is required',
+            validate: (value) => (/^\d+(\.\d{1,2})?$/.test(value) ? true : 'Enter a labor cost'),
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
-              label="Описание работ"
+              label="Labor cost"
               value={value}
-              onChangeText={onChange}
+              onChangeText={(next) => onChange(moneyText(next))}
               onBlur={onBlur}
+              keyboardType="decimal-pad"
               mode="outlined"
-              multiline
-              numberOfLines={4}
-              style={[styles.input, styles.multiline]}
-              error={!!errors.description}
+              style={styles.input}
+              error={!!errors.laborCost}
             />
           )}
         />
-        {errors.description ? (
-          <ThemedText style={styles.errorText}>{errors.description.message}</ThemedText>
+        {errors.laborCost ? <ThemedText style={styles.errorText}>{errors.laborCost.message}</ThemedText> : null}
+
+        {kind === 'repair' ? (
+          <>
+            <Controller
+              control={control}
+              name="repair"
+              rules={{
+                required: 'Describe what was repaired',
+                minLength: { value: 2, message: 'Describe what was repaired' },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="What was repaired"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  mode="outlined"
+                  style={styles.input}
+                  error={!!errors.repair}
+                />
+              )}
+            />
+            {errors.repair ? <ThemedText style={styles.errorText}>{errors.repair.message}</ThemedText> : null}
+          </>
         ) : null}
 
-        <Button mode="contained" onPress={handleSubmit(onSchedule)} disabled={!isValid}>
-          Запланировать
+        {fields.map((field, index) => {
+          const itemErrors = errors.items?.[index];
+          return (
+            <View key={field.id} style={styles.itemCard}>
+              <Controller
+                control={control}
+                name={`items.${index}.name`}
+                rules={{ required: index === 0 ? 'Name is required' : 'Name is required' }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    label="Name"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    mode="outlined"
+                    multiline
+                    numberOfLines={3}
+                    style={styles.nameInput}
+                    error={!!itemErrors?.name}
+                  />
+                )}
+              />
+              {itemErrors?.name ? <ThemedText style={styles.errorText}>{itemErrors.name.message}</ThemedText> : null}
+              <View style={styles.itemNumbers}>
+                <Controller
+                  control={control}
+                  name={`items.${index}.price`}
+                  rules={{
+                    required: 'Price is required',
+                    validate: (value) => {
+                      if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Enter a price';
+                      return true;
+                    },
+                  }}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="Price"
+                      value={value}
+                      onChangeText={(next) => onChange(moneyText(next))}
+                      onBlur={onBlur}
+                      keyboardType="decimal-pad"
+                      mode="outlined"
+                      style={styles.smallInput}
+                      error={!!itemErrors?.price}
+                    />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name={`items.${index}.quantity`}
+                  rules={{
+                    required: 'Quantity is required',
+                    validate: (value) => {
+                      const quantity = Number(value);
+                      if (!/^\d+$/.test(value) || quantity < 1 || quantity > 20) {
+                        return 'Quantity must be from 1 to 20';
+                      }
+                      return true;
+                    },
+                  }}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      label="Quantity"
+                      value={value}
+                      onChangeText={(next) => onChange(digitsOnly(next))}
+                      onBlur={onBlur}
+                      keyboardType="number-pad"
+                      mode="outlined"
+                      style={styles.smallInput}
+                      error={!!itemErrors?.quantity}
+                    />
+                  )}
+                />
+              </View>
+              {itemErrors?.price ? <ThemedText style={styles.errorText}>{itemErrors.price.message}</ThemedText> : null}
+              {itemErrors?.quantity ? (
+                <ThemedText style={styles.errorText}>{itemErrors.quantity.message}</ThemedText>
+              ) : null}
+              {index > 0 ? (
+                <Button mode="text" textColor="#d32f2f" onPress={() => remove(index)}>
+                  Remove
+                </Button>
+              ) : null}
+            </View>
+          );
+        })}
+
+        <Button mode="outlined" onPress={() => append(emptyItem())}>
+          Add
         </Button>
-      </View>
+
+        {preview ? <ThemedText style={styles.preview}>{preview}</ThemedText> : null}
+        {saveService.error ? <ThemedText style={styles.errorText}>{saveService.error.message}</ThemedText> : null}
+
+        <Button
+          mode="contained"
+          onPress={handleSubmit(onSave)}
+          loading={saveService.isPending}
+          disabled={saveService.isPending}>
+          Save
+        </Button>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -112,19 +292,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
     padding: 24,
-    gap: 10,
+    gap: 12,
+    paddingBottom: 40,
   },
   input: {
     width: '100%',
   },
-  multiline: {
-    minHeight: 120,
-    textAlignVertical: 'top',
+  itemCard: {
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(127, 127, 127, 0.4)',
+  },
+  nameInput: {
+    width: '100%',
+    minHeight: 80,
+  },
+  itemNumbers: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  smallInput: {
+    flex: 1,
+  },
+  preview: {
+    opacity: 0.75,
   },
   errorText: {
     color: '#d32f2f',
-    marginTop: -4,
+    marginTop: -6,
   },
 });

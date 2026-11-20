@@ -1,28 +1,30 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useAppStore } from '@/lib/stores/use-app-store';
+import { useCar } from '@/lib/hooks/use-car';
+import { useServices } from '@/lib/hooks/use-services';
 
 export default function CurrentCarServiceScreen() {
-  const { id: carId } = useLocalSearchParams<{ id: string }>();
-  const allServiceRecords = useAppStore((state) => state.serviceRecords);
-  const serviceRecords = useMemo(
-    () =>
-      allServiceRecords
-        .filter((r) => r.carId === carId)
-        .sort((a, b) => Number(b.id) - Number(a.id)),
-    [allServiceRecords, carId],
-  );
+  const params = useLocalSearchParams<{ id: string }>();
+  const carId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { data, isPending, isError, error } = useServices(carId);
+  const { data: carData } = useCar(carId);
+  const serviceRecords = data?.services ?? [];
+  const currentMileage = carData?.car.mileage;
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <ThemedText type="title">Service</ThemedText>
-        <ThemedText style={styles.subtitle}>Запланированные и выполненные работы.</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Mileage: {currentMileage != null ? `${currentMileage.toLocaleString('en-US')} km` : '—'}
+        </ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Total: {data != null ? data.totalCost.toLocaleString('en-US') : '—'}
+        </ThemedText>
 
         <Button
           mode="contained"
@@ -31,9 +33,12 @@ export default function CurrentCarServiceScreen() {
           Add
         </Button>
 
-        {serviceRecords.length === 0 ? (
+        {isPending ? <ThemedText style={styles.empty}>Loading services…</ThemedText> : null}
+        {isError ? <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load services'}</ThemedText> : null}
+        {!isPending && !isError && serviceRecords.length === 0 ? (
           <ThemedText style={styles.empty}>Пока нет записей. Нажмите Add, чтобы добавить.</ThemedText>
-        ) : (
+        ) : null}
+        {serviceRecords.length > 0 ? (
           <View style={styles.list}>
             {serviceRecords.map((record) => (
               <Card
@@ -42,13 +47,20 @@ export default function CurrentCarServiceScreen() {
                 style={styles.card}
                 onPress={() => router.push(`/(tabs)/main/current-car/${carId}/service-record/${record.id}`)}>
                 <Card.Content>
-                  <ThemedText type="defaultSemiBold">Пробег: {record.mileage.toLocaleString()} км</ThemedText>
-                  <ThemedText style={styles.cardDescription}>{record.description}</ThemedText>
+                  <ThemedText type="defaultSemiBold">{record.title}</ThemedText>
+                  {record.mileage != null ? (
+                    <ThemedText style={styles.cardDescription}>
+                      {record.mileage.toLocaleString('en-US')} km
+                    </ThemedText>
+                  ) : null}
+                  {record.cost != null ? (
+                    <ThemedText style={styles.cardDescription}>{record.cost.toLocaleString('en-US')}</ThemedText>
+                  ) : null}
                 </Card.Content>
               </Card>
             ))}
           </View>
-        )}
+        ) : null}
       </ScrollView>
     </ThemedView>
   );
@@ -83,5 +95,8 @@ const styles = StyleSheet.create({
   cardDescription: {
     marginTop: 8,
     opacity: 0.85,
+  },
+  errorText: {
+    color: '#d32f2f',
   },
 });

@@ -7,13 +7,14 @@ import { AttachInvoiceSheet } from '@/components/attach-invoice-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import type { InvoiceAttachment } from '@/lib/types';
-import { useAppStore } from '@/lib/stores/use-app-store';
+import { useService } from '@/lib/hooks/use-services';
 
 export default function ServiceRecordScreen() {
-  const { id: carId, serviceId } = useLocalSearchParams<{ id: string; serviceId: string }>();
-  const record = useAppStore((state) =>
-    state.serviceRecords.find((item) => item.id === serviceId && item.carId === carId),
-  );
+  const params = useLocalSearchParams<{ id: string; serviceId: string }>();
+  const carId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const serviceId = Array.isArray(params.serviceId) ? params.serviceId[0] : params.serviceId;
+  const { data, isPending, isError, error } = useService(carId, serviceId);
+  const record = data?.service;
 
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
   const [invoice, setInvoice] = useState<InvoiceAttachment | null>(null);
@@ -22,10 +23,28 @@ export default function ServiceRecordScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.content}>
         <ThemedText type="title">Запись сервиса</ThemedText>
+        {isPending ? <ThemedText style={styles.description}>Loading service…</ThemedText> : null}
+        {isError ? <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load service'}</ThemedText> : null}
         {record ? (
           <>
-            <ThemedText type="defaultSemiBold">Пробег: {record.mileage.toLocaleString()} км</ThemedText>
-            <ThemedText style={styles.description}>{record.description}</ThemedText>
+            <ThemedText type="defaultSemiBold">{record.title}</ThemedText>
+            {record.mileage != null ? (
+              <ThemedText style={styles.description}>{record.mileage.toLocaleString('en-US')} km</ThemedText>
+            ) : null}
+            {record.laborCost != null ? (
+              <ThemedText style={styles.description}>Labor: {record.laborCost.toLocaleString('en-US')}</ThemedText>
+            ) : null}
+            {record.cost != null ? (
+              <ThemedText type="defaultSemiBold">Total: {record.cost.toLocaleString('en-US')}</ThemedText>
+            ) : null}
+            {record.items?.map((item) => (
+              <View key={item.id} style={styles.item}>
+                <ThemedText>{item.name}</ThemedText>
+                <ThemedText style={styles.description}>
+                  {item.quantity} × {item.price.toLocaleString('en-US')}
+                </ThemedText>
+              </View>
+            ))}
             <Button mode="contained" onPress={() => setAttachSheetVisible(true)}>
               Добавить счёт
             </Button>
@@ -38,9 +57,9 @@ export default function ServiceRecordScreen() {
               </View>
             ) : null}
           </>
-        ) : (
+        ) : !isPending && !isError ? (
           <ThemedText style={styles.description}>Запись не найдена.</ThemedText>
-        )}
+        ) : null}
       </View>
 
       <AttachInvoiceSheet
@@ -64,6 +83,9 @@ const styles = StyleSheet.create({
   description: {
     opacity: 0.8,
   },
+  item: {
+    gap: 2,
+  },
   attachmentRow: {
     gap: 8,
     marginTop: 4,
@@ -73,5 +95,8 @@ const styles = StyleSheet.create({
   },
   chip: {
     alignSelf: 'flex-start',
+  },
+  errorText: {
+    color: '#d32f2f',
   },
 });
