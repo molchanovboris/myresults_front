@@ -24,6 +24,7 @@ export interface ApiCarPhoto {
   mimeType: string;
   size: number;
   originalName: string | null;
+  source: 'stock' | 'upload';
   url: string;
   createdAt: string;
   updatedAt: string;
@@ -32,6 +33,15 @@ export interface ApiCarPhoto {
 export interface CarDetailsResponse {
   car: ApiCar;
   photos: ApiCarPhoto[];
+}
+
+export interface PhotoListResponse {
+  photos: ApiCarPhoto[];
+  count: number;
+}
+
+export interface PhotoResponse {
+  photo: ApiCarPhoto;
 }
 
 export interface VinDecode {

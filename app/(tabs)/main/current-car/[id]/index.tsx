@@ -32,7 +32,7 @@ export default function CurrentCarHubScreen() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { data, isPending, isError, error } = useCar(id);
   const car = data?.car;
-  const photoUrl = data?.photos[0]?.url;
+  const photoUrl = data?.photos.find((photo) => photo.source === 'stock')?.url;
   const [editing, setEditing] = useState(false);
   const [color, setColor] = useState('');
   const [mileage, setMileage] = useState('');
