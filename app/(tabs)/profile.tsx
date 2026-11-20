@@ -1,8 +1,9 @@
 import { StyleSheet, View } from 'react-native';
-import { Button } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { ScreenTitle } from '@/components/ui/screen-title';
 import { useMe } from '@/lib/hooks/use-me';
 import { queryClient } from '@/lib/query-client';
 import { useAppStore } from '@/lib/stores/use-app-store';
@@ -19,7 +20,7 @@ export default function ProfileScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <ThemedText type="title">Profile</ThemedText>
+        <ScreenTitle>Profile</ScreenTitle>
         {isPending ? <ThemedText style={styles.subtitle}>Loading profile…</ThemedText> : null}
         {data?.user ? (
           <>
@@ -28,9 +29,9 @@ export default function ProfileScreen() {
           </>
         ) : null}
         {isError ? <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load profile'}</ThemedText> : null}
-        <Button mode="outlined" onPress={onLogout}>
+        <AppButton variant="secondary" onPress={onLogout}>
           Logout
-        </Button>
+        </AppButton>
       </View>
     </ThemedView>
   );

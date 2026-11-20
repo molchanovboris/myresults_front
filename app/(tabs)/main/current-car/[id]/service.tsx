@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card } from 'react-native-paper';
+import { Card } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { ScreenTitle } from '@/components/ui/screen-title';
 import { useCar } from '@/lib/hooks/use-car';
 import { useServices } from '@/lib/hooks/use-services';
 
@@ -18,7 +20,7 @@ export default function CurrentCarServiceScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <ThemedText type="title">Service</ThemedText>
+        <ScreenTitle>Service</ScreenTitle>
         <ThemedText style={styles.subtitle}>
           Mileage: {currentMileage != null ? `${currentMileage.toLocaleString('en-US')} km` : '—'}
         </ThemedText>
@@ -26,12 +28,11 @@ export default function CurrentCarServiceScreen() {
           Total: {data != null ? data.totalCost.toLocaleString('en-US') : '—'}
         </ThemedText>
 
-        <Button
-          mode="contained"
+        <AppButton
           onPress={() => router.push(`/(tabs)/main/current-car/${carId}/add-service`)}
           style={styles.addButton}>
           Add
-        </Button>
+        </AppButton>
 
         {isPending ? <ThemedText style={styles.empty}>Loading services…</ThemedText> : null}
         {isError ? <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load services'}</ThemedText> : null}

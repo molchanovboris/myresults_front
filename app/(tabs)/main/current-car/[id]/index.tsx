@@ -4,12 +4,13 @@ import { Image } from 'expo-image';
 import { Link, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppTextField } from '@/components/ui/app-text-field';
 import { apiAssetUrl } from '@/lib/api';
-import { updateCar } from '@/lib/cars';
+import { updateCar } from '@/features/cars';
 import { useCar } from '@/lib/hooks/use-car';
 import { queryClient } from '@/lib/query-client';
 import { useAppStore } from '@/lib/stores/use-app-store';
@@ -104,25 +105,21 @@ export default function CurrentCarHubScreen() {
             <Field label="Model" value={car.model} />
             <Field label="Year" value={car.year} />
             {editing ? (
-              <TextInput
+              <AppTextField
                 label="Color"
                 value={color}
                 onChangeText={setColor}
                 autoCapitalize="words"
-                mode="outlined"
-                style={styles.input}
               />
             ) : (
               <Field label="Color" value={car.color} />
             )}
             {editing ? (
-              <TextInput
+              <AppTextField
                 label="Mileage"
                 value={mileage}
                 onChangeText={setMileage}
                 keyboardType="number-pad"
-                mode="outlined"
-                style={styles.input}
               />
             ) : (
               <Field label="Mileage" value={car.mileage} />
@@ -166,9 +163,6 @@ const styles = StyleSheet.create({
   },
   label: {
     opacity: 0.6,
-  },
-  input: {
-    width: '100%',
   },
   photo: {
     width: '100%',

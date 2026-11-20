@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import { Controller, useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { AppTextField } from '@/components/ui/app-text-field';
+import { ScreenTitle } from '@/components/ui/screen-title';
 import { requestAuthCode, verifyAuthCode } from '@/lib/auth';
 import { useAppStore } from '@/lib/stores/use-app-store';
 
@@ -64,7 +67,7 @@ export default function LoginScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <ThemedText type="title">Sign in</ThemedText>
+        <ScreenTitle>Sign in</ScreenTitle>
         <ThemedText style={styles.subtitle}>
           Enter your email. We will send a 6-digit code. A new account is created on the first sign-in.
         </ThemedText>
@@ -80,7 +83,7 @@ export default function LoginScreen() {
             },
           }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="Email"
               value={value}
               onChangeText={(next) => {
@@ -94,8 +97,6 @@ export default function LoginScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
-              mode="outlined"
-              style={styles.input}
               error={!!errors.email}
             />
           )}
@@ -115,15 +116,13 @@ export default function LoginScreen() {
                 },
               }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
+                <AppTextField
                   label="Code"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
                   keyboardType="number-pad"
                   maxLength={6}
-                  mode="outlined"
-                  style={styles.input}
                   error={!!errors.code}
                 />
               )}
@@ -136,21 +135,17 @@ export default function LoginScreen() {
 
         {codeSent ? (
           <>
-            <Button mode="contained" onPress={onVerify} loading={verify.isPending} disabled={verify.isPending}>
+            <AppButton onPress={onVerify} loading={verify.isPending} disabled={verify.isPending}>
               Sign in
-            </Button>
+            </AppButton>
             <Button mode="text" onPress={onSendCode} loading={requestCode.isPending} disabled={requestCode.isPending}>
               Send code again
             </Button>
           </>
         ) : (
-          <Button
-            mode="contained"
-            onPress={onSendCode}
-            loading={requestCode.isPending}
-            disabled={requestCode.isPending}>
+          <AppButton onPress={onSendCode} loading={requestCode.isPending} disabled={requestCode.isPending}>
             Send code
-          </Button>
+          </AppButton>
         )}
       </View>
     </ThemedView>
@@ -170,9 +165,6 @@ const styles = StyleSheet.create({
   subtitle: {
     opacity: 0.7,
     marginBottom: 8,
-  },
-  input: {
-    width: '100%',
   },
   errorText: {
     color: '#d32f2f',

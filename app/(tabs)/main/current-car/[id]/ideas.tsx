@@ -1,18 +1,17 @@
 import { StyleSheet, View } from 'react-native';
-import { Button } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { ScreenTitle } from '@/components/ui/screen-title';
 
 export default function CurrentCarIdeasScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <ThemedText type="title">Ideas</ThemedText>
+        <ScreenTitle>Ideas</ScreenTitle>
         <ThemedText style={styles.subtitle}>Upgrades, mods, and ideas for this car.</ThemedText>
-        <Button mode="contained" onPress={() => {}}>
-          Add
-        </Button>
+        <AppButton onPress={() => {}}>Add</AppButton>
       </View>
     </ThemedView>
   );

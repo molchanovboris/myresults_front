@@ -3,12 +3,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
-import { Button, SegmentedButtons, TextInput } from 'react-native-paper';
+import { Button, SegmentedButtons } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/ui/app-button';
+import { AppTextArea } from '@/components/ui/app-text-area';
+import { AppTextField } from '@/components/ui/app-text-field';
 import { queryClient } from '@/lib/query-client';
-import { createService } from '@/lib/services';
+import { createService } from '@/features/service-records';
 import { useAppStore } from '@/lib/stores/use-app-store';
 import type { ServiceKind } from '@/lib/types';
 
@@ -120,14 +123,12 @@ export default function AddServiceScreen() {
             },
           }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="Mileage"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               keyboardType="number-pad"
-              mode="outlined"
-              style={styles.input}
               error={!!errors.mileage}
             />
           )}
@@ -142,14 +143,12 @@ export default function AddServiceScreen() {
             validate: (value) => (/^\d+(\.\d{1,2})?$/.test(value) ? true : 'Enter a labor cost'),
           }}
           render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
+            <AppTextField
               label="Labor cost"
               value={value}
               onChangeText={(next) => onChange(moneyText(next))}
               onBlur={onBlur}
               keyboardType="decimal-pad"
-              mode="outlined"
-              style={styles.input}
               error={!!errors.laborCost}
             />
           )}
@@ -166,13 +165,11 @@ export default function AddServiceScreen() {
                 minLength: { value: 2, message: 'Describe what was repaired' },
               }}
               render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
+                <AppTextField
                   label="What was repaired"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  mode="outlined"
-                  style={styles.input}
                   error={!!errors.repair}
                 />
               )}
@@ -190,15 +187,11 @@ export default function AddServiceScreen() {
                 name={`items.${index}.name`}
                 rules={{ required: index === 0 ? 'Name is required' : 'Name is required' }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
+                  <AppTextArea
                     label="Name"
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    mode="outlined"
-                    multiline
-                    numberOfLines={3}
-                    style={styles.nameInput}
                     error={!!itemErrors?.name}
                   />
                 )}
@@ -216,13 +209,12 @@ export default function AddServiceScreen() {
                     },
                   }}
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
+                    <AppTextField
                       label="Price"
                       value={value}
                       onChangeText={(next) => onChange(moneyText(next))}
                       onBlur={onBlur}
                       keyboardType="decimal-pad"
-                      mode="outlined"
                       style={styles.smallInput}
                       error={!!itemErrors?.price}
                     />
@@ -242,13 +234,12 @@ export default function AddServiceScreen() {
                     },
                   }}
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
+                    <AppTextField
                       label="Quantity"
                       value={value}
                       onChangeText={(next) => onChange(digitsOnly(next))}
                       onBlur={onBlur}
                       keyboardType="number-pad"
-                      mode="outlined"
                       style={styles.smallInput}
                       error={!!itemErrors?.quantity}
                     />
@@ -268,20 +259,19 @@ export default function AddServiceScreen() {
           );
         })}
 
-        <Button mode="outlined" onPress={() => append(emptyItem())}>
+        <AppButton variant="secondary" onPress={() => append(emptyItem())}>
           Add
-        </Button>
+        </AppButton>
 
         {preview ? <ThemedText style={styles.preview}>{preview}</ThemedText> : null}
         {saveService.error ? <ThemedText style={styles.errorText}>{saveService.error.message}</ThemedText> : null}
 
-        <Button
-          mode="contained"
+        <AppButton
           onPress={handleSubmit(onSave)}
           loading={saveService.isPending}
           disabled={saveService.isPending}>
           Save
-        </Button>
+        </AppButton>
       </ScrollView>
     </ThemedView>
   );
@@ -296,19 +286,12 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 40,
   },
-  input: {
-    width: '100%',
-  },
   itemCard: {
     gap: 8,
     padding: 12,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(127, 127, 127, 0.4)',
-  },
-  nameInput: {
-    width: '100%',
-    minHeight: 80,
   },
   itemNumbers: {
     flexDirection: 'row',

@@ -5,7 +5,9 @@ import { Button } from 'react-native-paper';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { deleteCar } from '@/lib/cars';
+import { AppButton } from '@/components/ui/app-button';
+import { ScreenTitle } from '@/components/ui/screen-title';
+import { deleteCar } from '@/features/cars';
 import { useCars } from '@/lib/hooks/use-cars';
 import { queryClient } from '@/lib/query-client';
 import { useAppStore } from '@/lib/stores/use-app-store';
@@ -44,7 +46,7 @@ export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <ThemedText type="title">My cars</ThemedText>
+        <ScreenTitle>My cars</ScreenTitle>
         {isPending ? <ThemedText style={styles.emptyText}>Loading cars…</ThemedText> : null}
         {isError ? (
           <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load cars'}</ThemedText>
@@ -55,12 +57,12 @@ export default function HomeScreen() {
         {removeCar.error ? <ThemedText style={styles.errorText}>{removeCar.error.message}</ThemedText> : null}
         {cars.map((car) => (
           <View key={car.id} style={styles.row}>
-            <Button
-              mode="outlined"
+            <AppButton
+              variant="secondary"
               onPress={() => router.push(`/(tabs)/main/current-car/${car.id}`)}
               style={styles.itemButton}>
               {carLabel(car)}
-            </Button>
+            </AppButton>
             <Button
               mode="text"
               textColor="#d32f2f"
