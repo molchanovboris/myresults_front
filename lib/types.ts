@@ -24,15 +24,18 @@ export interface ApiCarPhoto {
   mimeType: string;
   size: number;
   originalName: string | null;
-  source: 'stock' | 'upload';
   url: string;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface CarImage {
+  url: string;
+}
+
 export interface CarDetailsResponse {
   car: ApiCar;
-  photos: ApiCarPhoto[];
+  image: CarImage | null;
 }
 
 export interface PhotoListResponse {
@@ -68,6 +71,7 @@ export interface UpdateCarInput {
 
 export interface CarResponse {
   car: ApiCar;
+  image?: CarImage | null;
 }
 
 export type ServiceKind = 'maintenance' | 'repair';

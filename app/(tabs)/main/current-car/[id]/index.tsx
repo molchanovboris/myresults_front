@@ -32,7 +32,7 @@ export default function CurrentCarHubScreen() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { data, isPending, isError, error } = useCar(id);
   const car = data?.car;
-  const photoUrl = data?.photos.find((photo) => photo.source === 'stock')?.url;
+  const imageUrl = data?.image?.url;
   const [editing, setEditing] = useState(false);
   const [color, setColor] = useState('');
   const [mileage, setMileage] = useState('');
@@ -46,9 +46,10 @@ export default function CurrentCarHubScreen() {
       }),
     onSuccess: (updated) => {
       const token = useAppStore.getState().token;
-      queryClient.setQueryData<CarDetailsResponse>(['cars', token, id], (current) =>
-        current ? { ...current, car: updated.car } : { car: updated.car, photos: [] }
-      );
+      queryClient.setQueryData<CarDetailsResponse>(['cars', token, id], (current) => ({
+        car: updated.car,
+        image: updated.image !== undefined ? updated.image : (current?.image ?? null),
+      }));
       queryClient.invalidateQueries({ queryKey: ['cars', token], exact: true });
       setEditing(false);
       setFormError(null);
@@ -126,8 +127,8 @@ export default function CurrentCarHubScreen() {
             )}
             {formError ? <ThemedText style={styles.errorText}>{formError}</ThemedText> : null}
             {saveCar.error ? <ThemedText style={styles.errorText}>{saveCar.error.message}</ThemedText> : null}
-            {photoUrl ? (
-              <Image source={{ uri: apiAssetUrl(photoUrl) }} style={styles.photo} contentFit="cover" />
+            {imageUrl ? (
+              <Image key={imageUrl} source={{ uri: apiAssetUrl(imageUrl) }} style={styles.photo} contentFit="cover" />
             ) : (
               <View style={[styles.photo, styles.photoPlaceholder]}>
                 <ThemedText style={styles.muted}>No photo</ThemedText>
