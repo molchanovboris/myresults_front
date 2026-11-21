@@ -166,8 +166,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   photo: {
-    width: '100%',
-    height: 220,
+    right: '70%',
+    width: 550,
+    height: 200,
     borderRadius: 12,
   },
   photoPlaceholder: {

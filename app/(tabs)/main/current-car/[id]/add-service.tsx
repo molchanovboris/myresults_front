@@ -1,25 +1,19 @@
 import { useMutation } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Button, SegmentedButtons } from 'react-native-paper';
 
+import { ServiceItemModal, emptyServiceItem, type ServiceItemForm } from '@/components/service-item-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AppButton } from '@/components/ui/app-button';
-import { AppTextArea } from '@/components/ui/app-text-area';
 import { AppTextField } from '@/components/ui/app-text-field';
 import { queryClient } from '@/lib/query-client';
 import { createService } from '@/features/service-records';
 import { useAppStore } from '@/lib/stores/use-app-store';
 import type { ServiceKind } from '@/lib/types';
-
-type ServiceItemForm = {
-  name: string;
-  price: string;
-  quantity: string;
-};
 
 type AddServiceFormValues = {
   mileage: string;
@@ -27,12 +21,6 @@ type AddServiceFormValues = {
   repair: string;
   items: ServiceItemForm[];
 };
-
-const emptyItem = (): ServiceItemForm => ({ name: '', price: '', quantity: '1' });
-
-function digitsOnly(value: string) {
-  return value.replace(/\D/g, '').slice(0, 2);
-}
 
 function moneyText(value: string) {
   const cleaned = value.replace(/[^\d.]/g, '');
@@ -64,13 +52,16 @@ export default function AddServiceScreen() {
       mileage: '',
       laborCost: '',
       repair: '',
-      items: [emptyItem()],
+      items: [],
     },
   });
-  const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  const { fields, append, remove, update } = useFieldArray({ control, name: 'items' });
   const mileage = watch('mileage');
   const repair = watch('repair');
+  const items = watch('items');
   const preview = serviceTitle(kind, mileage, repair);
+  const [editor, setEditor] = useState<{ index: number | null; item: ServiceItemForm } | null>(null);
+  const [itemsError, setItemsError] = useState<string | null>(null);
 
   const saveService = useMutation({
     mutationFn: (values: AddServiceFormValues) =>
@@ -94,7 +85,30 @@ export default function AddServiceScreen() {
 
   const onSave = (values: AddServiceFormValues) => {
     if (!carId) return;
+    if (values.items.length === 0) {
+      setItemsError('Add at least one item');
+      return;
+    }
+    setItemsError(null);
     saveService.mutate(values);
+  };
+
+  const openNewItem = () => {
+    setEditor({ index: null, item: emptyServiceItem() });
+  };
+
+  const openItem = (index: number) => {
+    const item = items[index];
+    if (!item) return;
+    setEditor({ index, item: { ...item } });
+  };
+
+  const confirmItem = (item: ServiceItemForm) => {
+    if (!editor) return;
+    if (editor.index == null) append(item);
+    else update(editor.index, item);
+    setItemsError(null);
+    setEditor(null);
   };
 
   return (
@@ -178,93 +192,33 @@ export default function AddServiceScreen() {
           </>
         ) : null}
 
+        {fields.length === 0 ? <ThemedText style={styles.preview}>No items yet.</ThemedText> : null}
         {fields.map((field, index) => {
-          const itemErrors = errors.items?.[index];
+          const item = items[index];
+          if (!item) return null;
           return (
-            <View key={field.id} style={styles.itemCard}>
-              <Controller
-                control={control}
-                name={`items.${index}.name`}
-                rules={{ required: index === 0 ? 'Name is required' : 'Name is required' }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <AppTextArea
-                    label="Name"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={!!itemErrors?.name}
-                  />
-                )}
-              />
-              {itemErrors?.name ? <ThemedText style={styles.errorText}>{itemErrors.name.message}</ThemedText> : null}
-              <View style={styles.itemNumbers}>
-                <Controller
-                  control={control}
-                  name={`items.${index}.price`}
-                  rules={{
-                    required: 'Price is required',
-                    validate: (value) => {
-                      if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Enter a price';
-                      return true;
-                    },
-                  }}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <AppTextField
-                      label="Price"
-                      value={value}
-                      onChangeText={(next) => onChange(moneyText(next))}
-                      onBlur={onBlur}
-                      keyboardType="decimal-pad"
-                      style={styles.smallInput}
-                      error={!!itemErrors?.price}
-                    />
-                  )}
-                />
-                <Controller
-                  control={control}
-                  name={`items.${index}.quantity`}
-                  rules={{
-                    required: 'Quantity is required',
-                    validate: (value) => {
-                      const quantity = Number(value);
-                      if (!/^\d+$/.test(value) || quantity < 1 || quantity > 20) {
-                        return 'Quantity must be from 1 to 20';
-                      }
-                      return true;
-                    },
-                  }}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <AppTextField
-                      label="Quantity"
-                      value={value}
-                      onChangeText={(next) => onChange(digitsOnly(next))}
-                      onBlur={onBlur}
-                      keyboardType="number-pad"
-                      style={styles.smallInput}
-                      error={!!itemErrors?.quantity}
-                    />
-                  )}
-                />
-              </View>
-              {itemErrors?.price ? <ThemedText style={styles.errorText}>{itemErrors.price.message}</ThemedText> : null}
-              {itemErrors?.quantity ? (
-                <ThemedText style={styles.errorText}>{itemErrors.quantity.message}</ThemedText>
-              ) : null}
-              {index > 0 ? (
-                <Button mode="text" textColor="#d32f2f" onPress={() => remove(index)}>
-                  Remove
-                </Button>
-              ) : null}
+            <View key={field.id} style={styles.itemRow}>
+              <Pressable onPress={() => openItem(index)} style={styles.itemCard}>
+                <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+                <ThemedText style={styles.preview}>
+                  {item.quantity} × {item.price}
+                </ThemedText>
+              </Pressable>
+              <Button mode="text" textColor="#d32f2f" onPress={() => remove(index)}>
+                Remove
+              </Button>
             </View>
           );
         })}
 
-        <AppButton variant="secondary" onPress={() => append(emptyItem())}>
+        <AppButton variant="secondary" onPress={openNewItem}>
           Add
         </AppButton>
 
         {preview ? <ThemedText style={styles.preview}>{preview}</ThemedText> : null}
         {saveService.error ? <ThemedText style={styles.errorText}>{saveService.error.message}</ThemedText> : null}
+
+        {itemsError ? <ThemedText style={styles.errorText}>{itemsError}</ThemedText> : null}
 
         <AppButton
           onPress={handleSubmit(onSave)}
@@ -273,6 +227,14 @@ export default function AddServiceScreen() {
           Save
         </AppButton>
       </ScrollView>
+
+      <ServiceItemModal
+        key={editor == null ? 'closed' : String(editor.index ?? 'new')}
+        item={editor?.item ?? null}
+        title={editor?.index == null ? 'New item' : 'Item'}
+        onCancel={() => setEditor(null)}
+        onConfirm={confirmItem}
+      />
     </ThemedView>
   );
 }
@@ -286,19 +248,18 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 40,
   },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   itemCard: {
-    gap: 8,
+    flex: 1,
+    gap: 4,
     padding: 12,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(127, 127, 127, 0.4)',
-  },
-  itemNumbers: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  smallInput: {
-    flex: 1,
   },
   preview: {
     opacity: 0.75,

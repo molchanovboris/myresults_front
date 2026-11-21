@@ -1,11 +1,23 @@
+import { forwardRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { TextInput, type TextInputProps } from 'react-native-paper';
 
-export function AppTextArea({ style, ...rest }: TextInputProps) {
+type TextAreaRef = {
+  focus: () => void;
+};
+
+export const AppTextArea = forwardRef<TextAreaRef, TextInputProps>(function AppTextArea({ style, ...rest }, ref) {
   return (
-    <TextInput {...rest} mode="outlined" multiline numberOfLines={3} style={[styles.input, style]} />
+    <TextInput
+      ref={ref as never}
+      {...rest}
+      mode="outlined"
+      multiline
+      numberOfLines={3}
+      style={[styles.input, style]}
+    />
   );
-}
+});
 
 const styles = StyleSheet.create({
   input: {
