@@ -1,29 +1,78 @@
+import { useMutation } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Chip } from 'react-native-paper';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Button } from 'react-native-paper';
 
 import { AttachInvoiceSheet } from '@/components/attach-invoice-sheet';
+import { InvoiceSlots } from '@/components/invoice-slots';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { AppButton } from '@/components/ui/app-button';
 import { ScreenTitle } from '@/components/ui/screen-title';
-import type { InvoiceAttachment } from '@/lib/types';
+import { createServiceInvoice, deleteServiceInvoice } from '@/features/service-records';
+import { apiAssetUrl } from '@/lib/api';
 import { useService } from '@/lib/hooks/use-services';
+import { queryClient } from '@/lib/query-client';
+import { useAppStore } from '@/lib/stores/use-app-store';
+import type { ApiServiceInvoice, InvoiceAttachment } from '@/lib/types';
+
+const MAX_INVOICES = 2;
 
 export default function ServiceRecordScreen() {
   const params = useLocalSearchParams<{ id: string; serviceId: string }>();
   const carId = Array.isArray(params.id) ? params.id[0] : params.id;
   const serviceId = Array.isArray(params.serviceId) ? params.serviceId[0] : params.serviceId;
+  const token = useAppStore((state) => state.token);
   const { data, isPending, isError, error } = useService(carId, serviceId);
   const record = data?.service;
+  const invoices = record?.invoices ?? [];
 
   const [attachSheetVisible, setAttachSheetVisible] = useState(false);
-  const [invoice, setInvoice] = useState<InvoiceAttachment | null>(null);
+  const [preview, setPreview] = useState<ApiServiceInvoice | null>(null);
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['services', token, carId, serviceId] });
+  };
+
+  const addInvoice = useMutation({
+    mutationFn: (file: InvoiceAttachment) =>
+      createServiceInvoice(carId!, serviceId!, {
+        uri: file.uri,
+        name: file.name,
+        mimeType: file.mimeType ?? 'image/jpeg',
+      }),
+    onSuccess: refresh,
+  });
+
+  const uploadInvoices = async (files: InvoiceAttachment[]) => {
+    for (const file of files) {
+      await addInvoice.mutateAsync(file);
+    }
+  };
+
+  const removeInvoice = useMutation({
+    mutationFn: (invoiceId: string) => deleteServiceInvoice(carId!, serviceId!, invoiceId),
+    onSuccess: refresh,
+  });
+
+  const confirmDelete = (invoice: ApiServiceInvoice) => {
+    Alert.alert('Удалить фото', 'Удалить это фото счёта?', [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Удалить',
+        style: 'destructive',
+        onPress: () => {
+          setPreview(null);
+          removeInvoice.mutate(invoice.id);
+        },
+      },
+    ]);
+  };
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <ScreenTitle>Запись сервиса</ScreenTitle>
         {isPending ? <ThemedText style={styles.description}>Loading service…</ThemedText> : null}
         {isError ? <ThemedText style={styles.errorText}>{error?.message ?? 'Could not load service'}</ThemedText> : null}
@@ -47,26 +96,55 @@ export default function ServiceRecordScreen() {
                 </ThemedText>
               </View>
             ))}
-            <AppButton onPress={() => setAttachSheetVisible(true)}>Добавить счёт</AppButton>
-            {invoice ? (
-              <View style={styles.attachmentRow}>
-                <ThemedText style={styles.attachmentLabel}>Прикреплённый счёт:</ThemedText>
-                <Chip icon="file-document" onClose={() => setInvoice(null)} style={styles.chip}>
-                  {invoice.name}
-                </Chip>
-              </View>
-            ) : null}
+            <View style={styles.attachmentRow}>
+              <ThemedText style={styles.attachmentLabel}>Прикреплённый счёт:</ThemedText>
+              <InvoiceSlots
+                invoices={invoices}
+                maxCount={MAX_INVOICES}
+                disabled={addInvoice.isPending || !carId || !serviceId}
+                onAdd={() => setAttachSheetVisible(true)}
+                onOpen={setPreview}
+              />
+            </View>
+            {addInvoice.error ? <ThemedText style={styles.errorText}>{addInvoice.error.message}</ThemedText> : null}
+            {removeInvoice.error ? <ThemedText style={styles.errorText}>{removeInvoice.error.message}</ThemedText> : null}
           </>
         ) : !isPending && !isError ? (
           <ThemedText style={styles.description}>Запись не найдена.</ThemedText>
         ) : null}
-      </View>
+      </ScrollView>
 
       <AttachInvoiceSheet
         visible={attachSheetVisible}
+        remaining={MAX_INVOICES - invoices.length}
         onDismiss={() => setAttachSheetVisible(false)}
-        onAttachment={setInvoice}
+        onAttachment={(files) => {
+          uploadInvoices(files).catch(() => undefined);
+        }}
       />
+
+      <Modal visible={preview != null} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
+        <View style={styles.previewRoot}>
+          <Pressable style={styles.previewBackdrop} onPress={() => setPreview(null)} />
+          {preview ? (
+            <Image source={{ uri: apiAssetUrl(preview.url) }} style={styles.previewImage} contentFit="contain" />
+          ) : null}
+          <View style={styles.previewActions}>
+            <Button mode="text" textColor="#fff" onPress={() => setPreview(null)}>
+              Закрыть
+            </Button>
+            {preview ? (
+              <Button
+                mode="text"
+                textColor="#ff8a80"
+                disabled={removeInvoice.isPending}
+                onPress={() => confirmDelete(preview)}>
+                Удалить
+              </Button>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -76,9 +154,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
     padding: 24,
     gap: 12,
+    paddingBottom: 40,
   },
   description: {
     opacity: 0.8,
@@ -93,8 +171,22 @@ const styles = StyleSheet.create({
   attachmentLabel: {
     opacity: 0.75,
   },
-  chip: {
-    alignSelf: 'flex-start',
+  previewRoot: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 16,
+  },
+  previewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.88)',
+  },
+  previewImage: {
+    width: '100%',
+    height: '75%',
+  },
+  previewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   errorText: {
     color: '#d32f2f',

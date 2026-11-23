@@ -86,6 +86,16 @@ export interface ApiServiceItem {
   createdAt: string;
 }
 
+export interface ApiServiceInvoice {
+  id: string;
+  serviceId: string;
+  url: string;
+  mimeType: string;
+  size: number;
+  originalName: string | null;
+  createdAt: string;
+}
+
 export interface ServiceItemInput {
   name: string;
   quantity: number;
@@ -109,6 +119,7 @@ export interface ApiService {
   createdAt: string;
   updatedAt: string;
   items?: ApiServiceItem[];
+  invoices?: ApiServiceInvoice[];
 }
 
 export interface ApiServiceSummary {
@@ -130,6 +141,10 @@ export interface ServiceListResponse {
 
 export interface ServiceDetailsResponse {
   service: ApiService;
+}
+
+export interface ServiceInvoiceResponse {
+  invoice: ApiServiceInvoice;
 }
 
 export interface CreateServiceInput {

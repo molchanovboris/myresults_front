@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "myresults_front",
-    "slug": "myresults_front",
+    "name": "MyCar",
+    "slug": "MyCar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myresultsfront",
+    "scheme": "MyCar",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.boris.molchanov.MyCar"
     },
     "android": {
       "adaptiveIcon": {

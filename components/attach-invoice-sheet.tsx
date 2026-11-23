@@ -1,4 +1,3 @@
-import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback } from 'react';
 import { Alert, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -9,26 +8,26 @@ import type { InvoiceAttachment } from '@/lib/types';
 
 type AttachInvoiceSheetProps = {
   visible: boolean;
+  remaining: number;
   onDismiss: () => void;
-  onAttachment: (file: InvoiceAttachment) => void;
+  onAttachment: (files: InvoiceAttachment[]) => void;
 };
 
-const DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/heic'];
-
-export function AttachInvoiceSheet({ visible, onDismiss, onAttachment }: AttachInvoiceSheetProps) {
+export function AttachInvoiceSheet({ visible, remaining, onDismiss, onAttachment }: AttachInvoiceSheetProps) {
   const theme = useTheme();
 
   const finishPick = useCallback(
-    (file: InvoiceAttachment) => {
-      onAttachment(file);
+    (files: InvoiceAttachment[]) => {
+      if (files.length === 0) return;
+      onAttachment(files.slice(0, Math.max(remaining, 0)));
       onDismiss();
     },
-    [onAttachment, onDismiss],
+    [onAttachment, onDismiss, remaining],
   );
 
   const pickFromCamera = useCallback(async () => {
     if (Platform.OS === 'web') {
-      Alert.alert('Недоступно', 'Камера на веб-версии не поддерживается. Выберите файл или галерею.');
+      Alert.alert('Недоступно', 'Камера на веб-версии не поддерживается. Выберите фото из галереи.');
       return;
     }
     try {
@@ -46,7 +45,7 @@ export function AttachInvoiceSheet({ visible, onDismiss, onAttachment }: AttachI
       }
       const asset = result.assets[0];
       const name = asset.fileName ?? `invoice-${Date.now()}.jpg`;
-      finishPick({ uri: asset.uri, name, mimeType: asset.mimeType ?? 'image/jpeg' });
+      finishPick([{ uri: asset.uri, name, mimeType: asset.mimeType ?? 'image/jpeg' }]);
     } catch (e) {
       Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось открыть камеру');
     }
@@ -63,36 +62,22 @@ export function AttachInvoiceSheet({ visible, onDismiss, onAttachment }: AttachI
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
+        allowsMultipleSelection: remaining > 1,
+        selectionLimit: Math.max(remaining, 1),
         quality: 0.85,
       });
-      if (result.canceled || !result.assets?.[0]) {
+      if (result.canceled || !result.assets?.length) {
         return;
       }
-      const asset = result.assets[0];
-      const name = asset.fileName ?? `invoice-${Date.now()}.jpg`;
-      finishPick({ uri: asset.uri, name, mimeType: asset.mimeType ?? 'image/jpeg' });
+      finishPick(
+        result.assets.map((asset, index) => ({
+          uri: asset.uri,
+          name: asset.fileName ?? `invoice-${Date.now()}-${index}.jpg`,
+          mimeType: asset.mimeType ?? 'image/jpeg',
+        })),
+      );
     } catch (e) {
       Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось открыть галерею');
-    }
-  }, [finishPick]);
-
-  const pickDocument = useCallback(async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: DOCUMENT_TYPES,
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled || !result.assets?.[0]) {
-        return;
-      }
-      const doc = result.assets[0];
-      finishPick({
-        uri: doc.uri,
-        name: doc.name,
-        mimeType: doc.mimeType,
-      });
-    } catch (e) {
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось выбрать файл');
     }
   }, [finishPick]);
 
@@ -111,7 +96,7 @@ export function AttachInvoiceSheet({ visible, onDismiss, onAttachment }: AttachI
         <ThemedText type="subtitle" style={styles.title}>
           Прикрепить счёт
         </ThemedText>
-        <ThemedText style={styles.hint}>Выберите способ: фото, галерея или файл (PDF / изображение).</ThemedText>
+        <ThemedText style={styles.hint}>Сфотографируйте счёт или выберите фото из галереи.</ThemedText>
         {Platform.OS !== 'web' ? (
           <Button mode="contained-tonal" onPress={pickFromCamera} style={styles.btn}>
             Сделать фото
@@ -119,9 +104,6 @@ export function AttachInvoiceSheet({ visible, onDismiss, onAttachment }: AttachI
         ) : null}
         <Button mode="contained-tonal" onPress={pickFromLibrary} style={styles.btn}>
           Выбрать из галереи
-        </Button>
-        <Button mode="contained-tonal" onPress={pickDocument} style={styles.btn}>
-          Выбрать файл (PDF или фото)
         </Button>
         <Button mode="text" onPress={onDismiss} style={styles.btn}>
           Отмена
