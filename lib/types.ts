@@ -143,6 +143,10 @@ export interface ServiceDetailsResponse {
   service: ApiService;
 }
 
+export interface CarAdviceResponse {
+  advice: string;
+}
+
 export interface ServiceInvoiceResponse {
   invoice: ApiServiceInvoice;
 }

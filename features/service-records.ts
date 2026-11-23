@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
 import type {
+  CarAdviceResponse,
   CreateServiceInput,
   ServiceDetailsResponse,
   ServiceInvoiceResponse,
@@ -20,6 +21,13 @@ export function fetchServices(carId: string) {
 
 export function fetchService(carId: string, serviceId: string) {
   return apiFetch<ServiceDetailsResponse>(`/cars/${carId}/services/${serviceId}`);
+}
+
+export function fetchCarAdvice(carId: string) {
+  return apiFetch<CarAdviceResponse>(`/cars/${carId}/advice`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
 }
 
 export function createService(carId: string, input: CreateServiceInput) {

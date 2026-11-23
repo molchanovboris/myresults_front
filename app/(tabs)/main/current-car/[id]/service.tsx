@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card } from 'react-native-paper';
@@ -6,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AppButton } from '@/components/ui/app-button';
 import { ScreenTitle } from '@/components/ui/screen-title';
+import { fetchCarAdvice } from '@/features/service-records';
 import { useCar } from '@/lib/hooks/use-car';
 import { useServices } from '@/lib/hooks/use-services';
 
@@ -16,17 +18,31 @@ export default function CurrentCarServiceScreen() {
   const { data: carData } = useCar(carId);
   const serviceRecords = data?.services ?? [];
   const currentMileage = carData?.car.mileage;
+  const advice = useMutation({
+    mutationFn: () => fetchCarAdvice(carId!),
+  });
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <ScreenTitle>Service</ScreenTitle>
+        <View style={styles.titleRow}>
+          <ScreenTitle style={styles.title}>Service</ScreenTitle>
+          <AppButton
+            compact
+            onPress={() => advice.mutate()}
+            loading={advice.isPending}
+            disabled={!carId || advice.isPending}>
+            Advice
+          </AppButton>
+        </View>
         <ThemedText style={styles.subtitle}>
           Mileage: {currentMileage != null ? `${currentMileage.toLocaleString('en-US')} km` : '—'}
         </ThemedText>
         <ThemedText style={styles.subtitle}>
           Total: {data != null ? data.totalCost.toLocaleString('en-US') : '—'}
         </ThemedText>
+        {advice.data ? <ThemedText style={styles.advice}>{advice.data.advice}</ThemedText> : null}
+        {advice.error ? <ThemedText style={styles.errorText}>{advice.error.message}</ThemedText> : null}
 
         <AppButton
           onPress={() => router.push(`/(tabs)/main/current-car/${carId}/add-service`)}
@@ -76,8 +92,19 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 40,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  title: {
+    flex: 1,
+  },
   subtitle: {
     opacity: 0.7,
+  },
+  advice: {
+    lineHeight: 22,
   },
   addButton: {
     alignSelf: 'flex-start',
